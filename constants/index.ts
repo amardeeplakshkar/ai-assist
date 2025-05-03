@@ -1,4 +1,4 @@
-import { tool as createTool } from 'ai';
+import { tool as createTool, generateText } from 'ai';
 import { z } from 'zod';
 
 import { WeatherClient } from '@agentic/weather'
@@ -37,7 +37,74 @@ export const weatherTool = createTool({
   },
 })
 
+export const analyzeCameraImageTool = createTool({
+  description: 'Ask user to take a photo with their camera and analyze the image using AI.',
+  parameters: z.object({
+    prompt: z.string().describe('The prompt to use for analyzing the image'),
+  }),
+  execute: async function ({ prompt }) {
+    const imageFile = await captureImageFromCameraInClient()
 
+    if (!imageFile) {
+      return { error: 'User did not capture an image.' }
+    }
+
+    const base64Image = await convertToBase64(imageFile)
+    const provider = createOpenAICompatible({
+      name: 'azure',
+      apiKey: process.env.OPENAPI_API_KEY,
+      baseURL: process.env.OPENAI_API_BASE_URL || "",
+    });
+
+    const result = await generateText({
+      model: provider('openai'),
+      messages: [
+        {
+          role: 'user',
+          content: [
+            { type: 'text', text: prompt },
+            {
+              type: 'image',
+              image: base64Image,
+            },
+          ],
+        },
+      ],
+    })
+
+    return result
+  },
+})
+
+
+const captureImageFromCameraInClient = async (): Promise<File | null> => {
+  return new Promise((resolve, reject) => {
+    const input = document.createElement('input')
+    input.type = 'file'
+    input.accept = 'image/*'
+    input.capture = 'environment'
+
+    input.onchange = () => {
+      const file = input.files?.[0] || null
+      resolve(file)
+    }
+
+    input.onerror = reject
+    input.click()
+  })
+}
+
+const convertToBase64 = (file: File): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => {
+      const base64 = (reader.result as string).split(',')[1]
+      resolve(base64)
+    }
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
 
 export const generateImageTool = createTool({
   description: 'Generate an AI image based on a text prompt. Do not give image link at any cost.',
@@ -68,6 +135,7 @@ export const generateImageTool = createTool({
 })
 
 import { ArXivClient } from '@agentic/arxiv'
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 
 export const arxivSearchTool = createTool({
   description: 'Search academic papers from ArXiv',
@@ -86,7 +154,7 @@ export const arxivSearchTool = createTool({
         return { error: `No papers found for "${query}".` }
       }
       console.log(results);
-      
+
       return results
     } catch (err: any) {
       return {
@@ -95,6 +163,7 @@ export const arxivSearchTool = createTool({
     }
   },
 })
+
 export const tools = {
   generateImage: generateImageTool,
   displayWeather: weatherTool,
@@ -114,6 +183,6 @@ Response Guidelines:
 - When asked to perform a task that involves code or execution, respond with the code block wrapped in triple backticks and the language identifier \`tool_code\`.
 - If the task does not require a function or code execution, respond directly with an informative answer.
 - Always be helpful, informative, and accurate in your responses.
-
+- always response as markdown format. without any code block.
 You are IRIS. You never break character.
 `;

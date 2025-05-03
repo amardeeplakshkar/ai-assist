@@ -12,7 +12,7 @@ function FileDisplay({ fileName, onClear }: FileDisplayProps) {
             <button
                 type="button"
                 onClick={onClear}
-                className="ml-1 p-0.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
+                className="ml-1 cursor-pointer p-0.5 rounded-full hover:bg-black/10 dark:hover:bg-white/10 transition-colors"
             >
                 <X className="w-3 h-3 dark:text-white" />
             </button>

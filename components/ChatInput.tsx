@@ -6,6 +6,7 @@ import { Paperclip, Send } from 'lucide-react';
 import { useRef, useState } from 'react';
 import FileDisplay from './Widgets/FileDisplay';
 import { ChatRequestOptions } from 'ai';
+import { toast } from 'react-toastify';
 
 interface ChatInputProps {
   input: string;
@@ -25,6 +26,11 @@ const ChatInput: React.FC<ChatInputProps> = ({ input, handleInputChange, handleS
     <form
       onSubmit={(event: React.FormEvent) => {
         event.preventDefault();
+        if (!input || input === null) {
+          toast.error("Please Enter Prompt First");
+          return;
+        }
+
         handleSubmit(event, {
           experimental_attachments: files,
         });
@@ -66,7 +72,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ input, handleInputChange, handleS
         <Button
           type="submit"
           size="icon"
-          className="absolute bottom-2 right-2"
+          className="absolute cursor-pointer bottom-2 right-2"
           disabled={isGenerating}
         >
           <Send className="h-4 w-4" />
@@ -75,7 +81,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ input, handleInputChange, handleS
         <Button
           onClick={() => fileInputRef.current?.click()}
           size="icon"
-          className="absolute bottom-2 left-2"
+          className="absolute cursor-pointer bottom-2 left-2"
           disabled={isGenerating}
         >
           <Paperclip className="h-4 w-4" />

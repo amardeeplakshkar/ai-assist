@@ -1,4 +1,6 @@
-import React from 'react';
+'use client'
+
+import React, { useEffect, useRef } from 'react';
 import ReactMarkdown from 'react-markdown';
 import { Prism as SyntaxHighlighter } from 'react-syntax-highlighter';
 import remarkMath from 'remark-math';
@@ -9,23 +11,143 @@ import { dracula } from "react-syntax-highlighter/dist/esm/styles/prism";
 import WeatherCard from './Widgets/Weather';
 import ImageDisplay from './Widgets/ImageDisplay';
 import { TextShimmerWave } from './ui/text-shimmer-wave';
-import { Copy } from 'lucide-react';
+import { Copy, Volume2 } from 'lucide-react';
 import { Button } from './ui/button';
 import { toast } from 'react-toastify';
 import Image from 'next/image';
+import rehypeHighlight from 'rehype-highlight';
+import rehypeRaw from 'rehype-raw';
+import remarkEmoji from 'remark-emoji';
+import remarkGfm from 'remark-gfm';
+import remarkToc from 'remark-toc';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from './ui/table';
+import { Attachment } from 'ai';
 
 interface ChatMessageProps {
   content: any;
   isUser: boolean;
 }
 
+const renderers = {
+  table({ node, className, children, ...props }: any) {
+    return (
+      <div className="my-4 w-full overflow-x-auto">
+        <Table
+          className='rounded overflow-hidden'
+          {...props}
+        >
+          {children}
+        </Table>
+      </div>
+    );
+  },
+  thead({ node, ...props }: any) {
+    return <TableHeader {...props} />;
+  },
+  tbody({ node, ...props }: any) {
+    return <TableBody {...props} />;
+  },
+  tr({ node, ...props }: any) {
+    return (
+      <TableRow
+        className='hover:bg-secondary-foreground/20'
+        {...props}
+      />
+    );
+  },
+  th({ node, ...props }: any) {
+    return (
+      <TableHead
+        className='font-bold border-0 text-white bg-secondary-foreground'
+        {...props}
+      />
+    );
+  },
+  td({ node, ...props }: any) {
+    return (
+      <TableCell
+        className=''
+        {...props}
+      />
+    );
+  },
+};
+
 const ChatMessage: React.FC<ChatMessageProps> = ({ content: msg, isUser }) => {
-  const handleCopy = () => {
-    navigator.clipboard.writeText(msg.content).then(() => {
+  const handleCopy = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
       toast.success('Copied to clipboard!');
     }).catch(err => {
       toast.error('Failed to copy: ', err);
     });
+  };
+
+  const imageAttachments = msg?.experimental_attachments?.filter(
+    (attachment: Attachment) => attachment?.contentType?.startsWith('image/')
+  ) || [];
+
+  const pdfAttachments = msg?.experimental_attachments?.filter(
+    (attachment: Attachment) => attachment?.contentType?.startsWith('application/pdf')
+  ) || [];
+
+  const hasSpokenRef = useRef(false);
+  
+  useEffect(() => {
+    if (msg.role === 'user') return;
+  
+    const handler = setTimeout(() => {
+      if (msg?.content && !hasSpokenRef.current) {
+        enqueueTTS(String(msg.content).trim());
+        hasSpokenRef.current = true;
+      }
+    }, 100);
+  
+    return () => clearTimeout(handler);
+  }, [msg?.content]);
+  
+  let ttsQueue: string[] = [];
+  let isSpeaking = false;
+
+  const processQueue = async () => {
+    if (ttsQueue.length === 0 || isSpeaking) return;
+
+    isSpeaking = true;
+    const text = ttsQueue.shift();
+
+    if (text) {
+      try {
+        const res = await fetch('/api/tts', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ text }),
+        });
+
+        const blob = await res.blob();
+        const url = URL.createObjectURL(blob);
+        const audio = new Audio(url);
+
+        audio.addEventListener('ended', () => {
+          isSpeaking = false;
+          processQueue(); 
+        });
+
+        audio.addEventListener('error', () => {
+          isSpeaking = false;
+          processQueue();
+        });
+
+        audio.play();
+      } catch (err) {
+        console.error('TTS error:', err);
+        isSpeaking = false;
+        processQueue();
+      }
+    }
+  };
+
+  const enqueueTTS = (text: string) => {
+    ttsQueue.push(text);
+    processQueue();
   };
   return (
     <div className={cn(
@@ -67,18 +189,29 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ content: msg, isUser }) => {
               </div>
             );
           })}
-          {msg?.experimental_attachments
-            ?.filter((attachment: any) => attachment?.contentType?.startsWith('image/'))
-            .map((attachment: any, index: number) => (
-              <Image
-                className='rounded-xl mb-1'
-                key={`${msg?.id}-${index}`}
-                src={attachment.url}
-                width={200}
-                height={200}
-                alt={attachment.name ?? `attachment-${index}`}
-              />
-            ))}
+          {imageAttachments.length > 0 && (
+            <div className={`flex flex-wrap ${imageAttachments.length > 1 ? '' : ''}`}>
+              {imageAttachments.map((attachment: Attachment, index: number) => (
+                <Image
+                  key={`${msg?.id}-image-${index}`}
+                  src={attachment.url}
+                  width={80}
+                  height={80}
+                  alt={attachment.name ?? `attachment-${index}`}
+                  className="rounded-[1.5rem] overflow-hidden"
+                />
+              ))}
+            </div>
+          )}
+
+          {pdfAttachments.map((attachment: Attachment, index: number) => (
+            <iframe
+              key={`${msg?.id}-pdf-${index}`}
+              src={attachment.url}
+              className="w-full h-96 mt-4 rounded border"
+              title={attachment.name ?? `attachment-${index}`}
+            />
+          ))}
         </div>
         {
           !msg.content ? null :
@@ -89,9 +222,10 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ content: msg, isUser }) => {
                 : "bg-gradient-to-r from-[#6366f1] to-[#818cf8] text-white"
             )}>
               <ReactMarkdown
-                remarkPlugins={[remarkMath]}
-                rehypePlugins={[rehypeKatex]}
+                remarkPlugins={[remarkMath, remarkGfm, remarkEmoji, remarkToc]}
+                rehypePlugins={[rehypeKatex, rehypeHighlight, rehypeRaw]}
                 components={{
+                  ...renderers,
                   code({ node, inline, className, children, ...props }: any) {
                     const match = /language-(\w+)/.exec(className || '');
                     return !inline && match ? (
@@ -109,7 +243,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ content: msg, isUser }) => {
                         <div className="absolute top-2 right-2 transition-opacity duration-200">
                           <Button
                             size="sm"
-                            onClick={handleCopy}
+                            onClick={() => handleCopy(String(children).replace(/\n$/, ''))}
                             variant="secondary"
                             className="flex cursor-pointer items-center gap-1 bg-white/10 text-white backdrop-blur-sm hover:bg-white/15 shadow-md"
                           >
@@ -129,6 +263,27 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ content: msg, isUser }) => {
                 {msg?.content}
               </ReactMarkdown>
             </div>
+        }
+        {
+          msg.role !== "user" &&
+          <div className='flex items-center gap-2'>
+            <Button
+              size="sm"
+              onClick={() => handleCopy(String(msg.content).replace(/\n$/, ''))}
+              variant="outline"
+              className="cursor-pointer my-1 shadow-md"
+            >
+              <Copy size={16} />
+            </Button>
+            <Button
+              size="sm"
+              onClick={() => enqueueTTS(String(msg.content).replace(/\n$/, ''))}
+              variant="outline"
+              className="cursor-pointer my-1 shadow-md"
+            >
+              <Volume2 size={16} />
+            </Button>
+          </div>
         }
       </div>
     </div>
