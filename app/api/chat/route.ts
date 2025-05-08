@@ -1,7 +1,8 @@
 import { systemInstructions, tools } from '@/constants';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
-import { streamText } from 'ai';
+import { streamText, createDataStreamResponse } from 'ai';
 import { google } from '@ai-sdk/google';
+import { generateId } from 'ai';
 
 export const maxDuration = 30;
 
@@ -22,17 +23,29 @@ export async function POST(req: Request) {
         )
     );
 
-    const result = streamText({
-      model: messagesHavePDF
-        ? google('gemini-2.5-flash-preview-04-17')
-        : provider('openai'),
-      system: systemInstructions,
-      messages,
-      maxSteps: 5,
-      tools,
-    });
+    const model = messagesHavePDF
+      ? google('gemini-2.5-flash-preview-04-17')
+      : provider('openai');
 
-    return result.toDataStreamResponse();
+    return createDataStreamResponse({
+      execute: (dataStream) => {
+        dataStream.writeData('initialized call');
+
+        const result = streamText({
+          model,
+          system: systemInstructions,
+          messages,
+          tools,
+          toolCallStreaming: true,
+          maxSteps: 5,          
+        });
+
+        result.mergeIntoDataStream(dataStream);
+      },
+      onError: (error) => {
+        return error instanceof Error ? error.message : String(error);
+      },
+    });
   } catch (error) {
     console.error('POST handler error:', error);
 

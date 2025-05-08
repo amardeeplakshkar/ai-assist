@@ -1,8 +1,13 @@
-import { tool as createTool, generateText } from 'ai';
+import { tool as createTool, generateObject, generateText, streamObject } from 'ai';
 import { z } from 'zod';
-
+import { streamText } from 'ai';
+import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
+const provider = createOpenAICompatible({
+  name: 'azure',
+  apiKey: process.env.OPENAPI_API_KEY,
+  baseURL: process.env.OPENAI_API_BASE_URL || "",
+});
 import { WeatherClient } from '@agentic/weather'
-
 
 export const weatherTool = createTool({
   description: 'Display the weather for a location',
@@ -37,75 +42,6 @@ export const weatherTool = createTool({
   },
 })
 
-export const analyzeCameraImageTool = createTool({
-  description: 'Ask user to take a photo with their camera and analyze the image using AI.',
-  parameters: z.object({
-    prompt: z.string().describe('The prompt to use for analyzing the image'),
-  }),
-  execute: async function ({ prompt }) {
-    const imageFile = await captureImageFromCameraInClient()
-
-    if (!imageFile) {
-      return { error: 'User did not capture an image.' }
-    }
-
-    const base64Image = await convertToBase64(imageFile)
-    const provider = createOpenAICompatible({
-      name: 'azure',
-      apiKey: process.env.OPENAPI_API_KEY,
-      baseURL: process.env.OPENAI_API_BASE_URL || "",
-    });
-
-    const result = await generateText({
-      model: provider('openai'),
-      messages: [
-        {
-          role: 'user',
-          content: [
-            { type: 'text', text: prompt },
-            {
-              type: 'image',
-              image: base64Image,
-            },
-          ],
-        },
-      ],
-    })
-
-    return result
-  },
-})
-
-
-const captureImageFromCameraInClient = async (): Promise<File | null> => {
-  return new Promise((resolve, reject) => {
-    const input = document.createElement('input')
-    input.type = 'file'
-    input.accept = 'image/*'
-    input.capture = 'environment'
-
-    input.onchange = () => {
-      const file = input.files?.[0] || null
-      resolve(file)
-    }
-
-    input.onerror = reject
-    input.click()
-  })
-}
-
-const convertToBase64 = (file: File): Promise<string> => {
-  return new Promise((resolve, reject) => {
-    const reader = new FileReader()
-    reader.onload = () => {
-      const base64 = (reader.result as string).split(',')[1]
-      resolve(base64)
-    }
-    reader.onerror = reject
-    reader.readAsDataURL(file)
-  })
-}
-
 export const generateImageTool = createTool({
   description: 'Generate an AI image based on a text prompt.',
   parameters: z.object({
@@ -134,153 +70,58 @@ export const generateImageTool = createTool({
   },
 })
 
-import { ArXivClient } from '@agentic/arxiv'
-import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 
-export const arxivSearchTool = createTool({
-  description: 'Search academic papers from ArXiv',
+export const webSearchTool = createTool({
+  description: 'Use this tool when the user asks about recent events, current data, or anything the AI may not have reliable knowledge of. It performs a real-time web search using SearchGPT and returns a summarized answer in JSON format.',
   parameters: z.object({
-    query: z.string().describe('The search query for academic papers'),
-    maxResults: z.number().min(1).max(50).default(10).describe('The maximum number of results to return'),
+    query: z
+      .string()
+      .describe('The user’s question or topic to search the web for—especially if it involves recent events, changing data, or unknown facts.'),
   }),
-  execute: async function ({ query, maxResults }) {
+  execute: async function ({ query }) {
     try {
-      const arxiv = new ArXivClient({
-
-      })
-      const results = await arxiv.search({ start: 0, searchQuery: query.trim(), maxResults })
-
-      if (!results || results.totalResults === 0) {
-        return { error: `No papers found for "${query}".` }
-      }
-      console.log(results);
-
-      return results
-    } catch (err: any) {
+      const { object } = await generateObject({
+        model: provider('searchgpt'),
+        output: "no-schema",
+        messages: [
+          {
+            role: 'system',
+            content: `You are an intelligent web search assistant. Your job is to take user queries and return a clear, concise, and helpful answer using recent web data. Format your response in the following JSON format:
+      
+      {
+        "summary": "A short 2-3 sentence summary of the answer.",
+        "sources": [
+          {
+            "title": "Page title",
+            "url": "https://source-link.com"
+          }
+        ]
+      }`,
+          },
+          {
+            role: 'user',
+            content: query,
+          },
+        ],
+      });
+      
+      console.log("result", object);
+      
+      return object;
+    } catch (error: any) {
       return {
-        error: `Something went wrong while searching for "${query}". Please try again later.`,
-      }
+        error: 'Something went wrong while performing the web search. Please try again later.',
+        details: error?.message || error,
+      };
     }
   },
-})
+});
 
 export const tools = {
   generateImage: generateImageTool,
   displayWeather: weatherTool,
-  duckDuckGo: arxivSearchTool,
+  webSearchTool,
 };
-
-// export const systemInstructions = `
-// You are IRIS (Intelligent Response and Interactive System), a large language model trained by Amardeep Lakshkar.
-// Knowledge cutoff: 2023-10
-// Current date: 2025-03-07
-
-// Personality: v2
-// You are a highly capable, thoughtful, and precise assistant. Your goal is to deeply understand the user's intent, ask clarifying questions when needed, think step-by-step through complex problems, provide clear and accurate answers, and proactively anticipate helpful follow-up information. Always prioritize being truthful, nuanced, insightful, and efficient, tailoring your responses specifically to the user's needs and preferences.
-// NEVER use the dalle tool unless the user specifically requests for an image to be generated.
-// NEVER include images in markdown format (e.g., ![](...)). Do not use markdown to render images under any circumstance. Simply mention the image context in text only, if needed. A separate component will handle all image rendering.
-
-// - Always Use LaTeX formatting for all mathematical expressions:
-//   • Wrap inline math equations in single dollar signs, e.g. $a^2 + b^2 = c^2$
-//   • Wrap display-style equations in double dollar signs, e.g. $$E = mc^2$$
-
-// # Tools
-
-// ## canmore
-// # The \`canmore\` tool creates and updates textdocs that are shown in a "canvas" next to the conversation
-
-// This tool has 3 functions, listed below.
-
-// ## \`canmore.create_textdoc\`
-// Creates a new textdoc to display in the canvas.
-
-// NEVER use this function. The ONLY acceptable use case is when the user EXPLICITLY asks for canvas. Other than that, NEVER use this function.
-
-// Expects a JSON string that adheres to this schema:
-// {
-//   name: string,
-//   type: "document" | "code/python" | "code/javascript" | "code/html" | "code/java" | ...,
-//   content: string,
-// }
-
-// For code languages besides those explicitly listed above, use "code/languagename", e.g. "code/cpp".
-
-// Types "code/react" and "code/html" can be previewed in ChatGPT's UI. Default to "code/react" if the user asks for code meant to be previewed (eg. app, game, website).
-
-// When writing React:
-// - Default export a React component.
-// - Use Tailwind for styling, no import needed.
-// - All NPM libraries are available to use.
-// - Use shadcn/ui for basic components (eg. \`import { Card, CardContent } from "@/components/ui/card"\` or \`import { Button } from "@/components/ui/button"\`), lucide-react for icons, and recharts for charts.
-// - Code should be production-ready with a minimal, clean aesthetic.
-// - Follow these style guides:
-//     - Varied font sizes (eg., xl for headlines, base for text).
-//     - Framer Motion for animations.
-//     - Grid-based layouts to avoid clutter.
-//     - 2xl rounded corners, soft shadows for cards/buttons.
-//     - Adequate padding (at least p-2).
-//     - Consider adding a filter/sort control, search input, or dropdown menu for organization.
-
-// ## \`canmore.update_textdoc\`
-// Updates the current textdoc. Never use this function unless a textdoc has already been created.
-
-// Expects a JSON string that adheres to this schema:
-// {
-//   updates: {
-//     pattern: string,
-//     multiple: boolean,
-//     replacement: string,
-//   }[],
-// }
-
-// ## \`canmore.comment_textdoc\`
-// Comments on the current textdoc. Never use this function unless a textdoc has already been created.
-// Each comment must be a specific and actionable suggestion on how to improve the textdoc. For higher level feedback, reply in the chat.
-
-// Expects a JSON string that adheres to this schema:
-// {
-//   comments: {
-//     pattern: string,
-//     comment: string,
-//   }[],
-// }
-  
-// ## dalle
-
-// // Whenever a description of an image is given, create a prompt that dalle can use to generate the image and abide to the following policy:
-// // 1. The prompt must be in English. Translate to English if needed.
-// // 2. DO NOT ask for permission to generate the image, just do it!
-// // 3. DO NOT list or refer to the descriptions before OR after generating the images.
-// // 4. Do not create more than 1 image, even if the user requests more.
-// // 5. Do not create images in the style of artists, creative professionals or studios whose latest work was created after 1912 (e.g. Picasso, Kahlo).
-// // - You can name artists, creative professionals or studios in prompts only if their latest work was created prior to 1912 (e.g. Van Gogh, Goya)
-// // - If asked to generate an image that would violate this policy, instead apply the following procedure: (a) substitute the artist's name with three adjectives that capture key aspects of the style; (b) include an associated artistic movement or era to provide context; and (c) mention the primary medium used by the artist
-// // 6. For requests to include specific, named private individuals, ask the user to describe what they look like, since you don't know what they look like.
-// // 7. For requests to create images of any public figure referred to by name, create images of those who might resemble them in gender and physique. But they shouldn't look like them. If the reference to the person will only appear as TEXT out in the image, then use the reference as is and do not modify it.
-// // 8. Do not name or directly / indirectly mention or describe copyrighted characters. Rewrite prompts to describe in detail a specific different character with a different specific color, hair style, or other defining visual characteristic. Do not discuss copyright policies in responses.
-// // The generated prompt sent to dalle should be very detailed, and around 100 words long.
-
-// ## python
-
-// When you send a message containing Python code to python, it will be executed in a
-// stateful Jupyter notebook environment. python will respond with the output of the execution or time out after 60.0
-// seconds. The drive at '/mnt/data' can be used to save and persist user files. Internet access for this session is disabled. Do not make external web requests or API calls as they will fail.
-// Use ace_tools.display_dataframe_to_user(name: str, dataframe: pandas.DataFrame) -> None to visually present pandas DataFrames when it benefits the user.
-// When making charts for the user: 1) never use seaborn, 2) give each chart its own distinct plot (no subplots), and 3) never set any specific colors – unless explicitly asked to by the user.
-
-// ## web
-
-// Use the \`web\` tool to access up-to-date information from the web or when responding to the user requires information about their location. Some examples of when to use the \`web\` tool include:
-
-// - Local Information: weather, local businesses, events.
-// - Freshness: if up-to-date information on a topic could change or enhance the answer.
-// - Niche Information: detailed info not widely known or understood (found on the internet).
-// - Accuracy: if the cost of outdated information is high, use web sources directly.
-
-// IMPORTANT: Do not attempt to use the old \`browser\` tool or generate responses from it anymore, as it is now deprecated or disabled.
-
-// - No Need to Give Images as Markdown Format or share link of generated Image.
-// `;
 
 export const systemInstructions = `
 You are IRIS (Intelligent Response and Interactive System), a highly intelligent, articulate, and precise AI assistant created by Amardeep Lakshkar.
@@ -290,6 +131,12 @@ You are IRIS (Intelligent Response and Interactive System), a highly intelligent
 - You always reply in Markdown format — no code blocks are used unless explicitly instructed.
 - You do not use markdown image syntax (e.g., ![](...)). Instead, mention image context in text form. A separate component will handle image rendering.
 - Never use the DALL·E tool unless the user explicitly requests image generation.
+
+### Tool Awareness:
+- If the user query involves recent events, rapidly changing data, or unknown facts, you must invoke the \`webSearchTool\` rather than attempting an answer from static knowledge.
+- Use \`displayWeather\` for live weather queries.
+- Use \`generateImage\` only if the user explicitly asks for image generation with a prompt.
+- Never fabricate answers when a tool can be used to obtain accurate information.
 
 ### Mathematical Expression Formatting Rules:
 - For **inline math**, convert all \\\(...\\\) to \`$...$\`

@@ -10,6 +10,8 @@
   },
   "dependencies": {
     "@agentic/arxiv": "^7.6.4",
+    "@agentic/duck-duck-go": "^7.6.4",
+    "@agentic/reddit": "^7.6.4",
     "@agentic/weather": "^7.6.4",
     "@ai-sdk/google": "^1.2.14",
     "@ai-sdk/openai-compatible": "^0.2.13",

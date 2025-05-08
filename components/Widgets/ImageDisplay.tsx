@@ -72,8 +72,8 @@ export const ImageDisplay: React.FC<ImageDisplayProps> = ({ src, prompt }) => {
             </div>
             
             <div className="mt-3">
-                <div className="bg-white/10 backdrop-blur-sm p-3 rounded-lg">
-                    <p className="text-sm text-gray-700 italic">
+                <div className="bg-secondary/10 backdrop-blur-sm p-3 rounded-lg">
+                    <p className="text-sm text-secondary-foreground/60 italic">
                         "{prompt}"
                     </p>
                 </div>

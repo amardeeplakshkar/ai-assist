@@ -68,18 +68,16 @@ interface ChatBubbleAvatarProps {
   className?: string
 }
 
-export function ChatBubbleAvatar({
-  src,
-  fallback = "AI",
-  className,
-}: ChatBubbleAvatarProps) {
+import { ReactElement } from 'react';
+
+export function ChatBubbleAvatar({ Icon }: { Icon: ReactElement }) {
   return (
-    <Avatar className={cn("h-8 w-8", className)}>
-      {src && <AvatarImage src={src} />}
-      <AvatarFallback>{fallback}</AvatarFallback>
-    </Avatar>
-  )
+    <div className="mt-2 w-8 h-8 rounded-full bg-secondary-foreground/5 flex items-center justify-center">
+      {Icon}
+    </div>
+  );
 }
+
 
 interface ChatBubbleActionProps {
   icon?: React.ReactNode
