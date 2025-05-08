@@ -63,7 +63,7 @@ export const ImageDisplay: React.FC<ImageDisplayProps> = ({ src, prompt }) => {
                         onClick={handleDownload} 
                         size="sm" 
                         variant="secondary"
-                        className="flex cursor-pointer items-center gap-1 bg-white/90 backdrop-blur-sm hover:bg-white shadow-md"
+                        className="flex cursor-pointer items-center gap-1 bg-secondary/90 backdrop-blur-sm hover:bg-secondary shadow-md"
                     >
                         <Download size={16} />
                         <span>Download</span>

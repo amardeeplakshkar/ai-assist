@@ -2,7 +2,6 @@ import { systemInstructions, tools } from '@/constants';
 import { createOpenAICompatible } from '@ai-sdk/openai-compatible';
 import { streamText, createDataStreamResponse } from 'ai';
 import { google } from '@ai-sdk/google';
-import { generateId } from 'ai';
 
 export const maxDuration = 30;
 
@@ -25,7 +24,7 @@ export async function POST(req: Request) {
 
     const model = messagesHavePDF
       ? google('gemini-2.5-flash-preview-04-17')
-      : provider('openai');
+      : provider('openai-large');
 
     return createDataStreamResponse({
       execute: (dataStream) => {

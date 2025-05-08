@@ -50,7 +50,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ input, handleInputChange, handleS
           value={input}
           onChange={handleInputChange}
           placeholder={isGenerating ? "Generating response..." : "Type your message here..."}
-          className="pr-16 resize-none min-h-[100px]"
+          className={`pr-16 resize-none ${fileName ? "min-h-[80px]" : "min-h-[100px]"}`}
           disabled={isGenerating}
           onKeyDown={(e) => {
             if (e.key === "Enter" && !e.shiftKey) {

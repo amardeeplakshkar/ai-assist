@@ -6,7 +6,7 @@ interface FileDisplayProps {
 }
 function FileDisplay({ fileName, onClear }: FileDisplayProps) {
     return (
-        <div className="flex items-center gap-2 bg-black/5 dark:bg-white/5 w-fit px-3 py-1 rounded-lg group border dark:border-white/10">
+        <div className="flex -mt-2 mb-1 items-center gap-2 bg-black/5 dark:bg-white/5 w-fit px-3 py-1 rounded-lg group border dark:border-white/10">
             <FileUp className="w-4 h-4 dark:text-white" />
             <span className="text-sm dark:text-white">{fileName}</span>
             <button
