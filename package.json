@@ -17,6 +17,8 @@
     "@ai-sdk/openai-compatible": "^0.2.13",
     "@ai-sdk/react": "^1.2.11",
     "@hookform/resolvers": "^3.9.0",
+    "@langchain/community": "^0.3.42",
+    "@langchain/core": "^0.3.55",
     "@radix-ui/react-accordion": "^1.2.0",
     "@radix-ui/react-alert-dialog": "^1.1.1",
     "@radix-ui/react-aspect-ratio": "^1.1.0",
@@ -80,6 +82,8 @@
     "tailwind-merge": "^2.5.2",
     "tailwindcss-animate": "^1.0.7",
     "vaul": "^0.9.3",
+    "youtubei.js": "^13.4.0",
+    "ytdl-core": "^4.11.5",
     "zod": "^3.23.8"
   },
   "devDependencies": {

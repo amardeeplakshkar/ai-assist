@@ -117,10 +117,61 @@ export const webSearchTool = createTool({
   },
 });
 
+import { YoutubeLoader } from '@langchain/community/document_loaders/web/youtube';
+
+function extractYouTubeVideoId(url: string): string | null {
+  const match = url.match(
+    /(?:youtube\.com\/(?:watch\?v=|embed\/)|youtu\.be\/)([\w-]{11})/
+  );
+  return match ? match[1] : null;
+}
+
+export const youtubeTranscriptionTool = createTool({
+  description: 'Transcribe the spoken content of a YouTube video',
+  parameters: z.object({
+    url: z.string().url().describe('The full YouTube video URL to transcribe'),
+  }),
+  execute: async function ({ url }) {
+    try {
+      const loader = YoutubeLoader.createFromUrl(url, {
+        addVideoInfo: true,
+        language: 'en',
+      });
+
+      const docs = await loader.load();
+
+      const transcript = docs
+        .map(doc => doc.pageContent)
+        .join('\n')
+
+      if (!transcript) {
+        return { error: 'No transcript could be generated for this video.' };
+      }
+
+      const videoId = extractYouTubeVideoId(url);
+      const embedLink = videoId
+        ? `https://www.youtube.com/embed/${videoId}`
+        : null;
+
+      return {
+        transcript,
+        embedLink,
+      };
+
+    } catch (err: any) {
+      console.error('YouTube transcription error:', err);
+      return {
+        error: `Something went wrong while transcribing "${url}". Please check the link and try again.`,
+      };
+    }
+  },
+});
+
 export const tools = {
   generateImage: generateImageTool,
   displayWeather: weatherTool,
   webSearchTool,
+  youtubeTranscription: youtubeTranscriptionTool,
 };
 
 export const systemInstructions = `
@@ -137,6 +188,11 @@ You are IRIS (Intelligent Response and Interactive System), a highly intelligent
 - Use \`displayWeather\` for live weather queries.
 - Use \`generateImage\` only if the user explicitly asks for image generation with a prompt.
 - Never fabricate answers when a tool can be used to obtain accurate information.
+- Always use \`youtubeTranscriptionTool\` when a user requests a transcript or asks to extract spoken content from a YouTube video by providing a full YouTube URL.
+- Invoke this tool ONLY when the user explicitly requests a YouTube transcription, explaination or genuinely implies the need to convert audio from a video link to text.
+- Do NOT attempt to manually generate, estimate, or paraphrase transcripts for YouTube videos; never fabricate the spoken content—always use the tool for accurate, authentic results.
+- If the tool fails or no transcript is found, relay the error message to the user and politely suggest providing a different link or additional instructions.
+- Do NOT use this tool for any URLs that are not direct YouTube links, nor for non-transcription tasks.
 
 ### Mathematical Expression Formatting Rules:
 - For **inline math**, convert all \\\(...\\\) to \`$...$\`

@@ -112,6 +112,67 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ content: msg, isUser }) => {
     </ReactMarkdown>
   ), [msg?.content]);
 
+  const getToolResult = (toolName: string, toolInvocation: any) => {
+    switch (toolName) {
+      case 'displayWeather':
+        return toolInvocation?.result?.location?.name && (
+          <WeatherCard data={toolInvocation?.result} />
+        );
+      case 'youtubeTranscription':
+        return(
+          <>
+          <iframe src={toolInvocation?.result?.embedLink} width="100%" className='aspect-video max-h-[216px] rounded-lg max-w-[384px]' height="100%" allowFullScreen></iframe>
+          </>
+        );
+      case 'generateImage':
+        return (
+          <ImageDisplay
+            src={toolInvocation?.result?.imageUrl}
+            prompt={toolInvocation?.result?.prompt}
+          />
+        );
+      case 'webSearchTool':
+        return (
+          <Tabs defaultValue='answer'>
+            <TabsList className='w-full'>
+              <TabsTrigger value='answer'>Answer</TabsTrigger>
+              <TabsTrigger value='source'>Sources</TabsTrigger>
+            </TabsList>
+            <TabsContent value='answer'>
+              <ReactMarkdown
+                remarkPlugins={[remarkMath, remarkGfm, remarkEmoji, remarkToc]}
+                rehypePlugins={[rehypeKatex, rehypeRaw]}
+                components={renderers}
+              >
+                {toolInvocation?.result?.summary}
+              </ReactMarkdown>
+            </TabsContent>
+            <TabsContent value='source'>
+              {toolInvocation?.result?.sources.map((source: any, i: number) => (
+                <Link href={source.url} target='_blank' key={i}>
+                  <div className="bg-card mb-2 cursor-pointer hover:bg-secondary/20 transition-all duration-300 rounded-xl p-2 shadow-md hover:shadow-xl border border-border/40 backdrop-blur-sm">
+                    <div className="flex items-center gap-3">
+                      <div className="p-2.5 bg-gradient-to-br from-primary/80 to-primary rounded-full flex-shrink-0 shadow-inner flex items-center justify-center text-primary-foreground">
+                        <ExternalLink className="h-5 w-5" />
+                      </div>
+                      <div className="space-y-1">
+                        <h4 className="font-medium line-clamp-1 text-sm">{source.url}</h4>
+                        <p className="text-sm line-clamp-1 text-muted-foreground">{source.title}</p>
+                      </div>
+                    </div>
+                  </div>
+                </Link>
+              ))}
+            </TabsContent>
+            <Separator />
+            <p className='text-muted-foreground text-sm'>Summary:</p>
+          </Tabs>
+        );
+      default:
+        return null;
+    }
+  };
+
   return (
     <div className={cn(
       "flex w-full mb-4 animate-fade-in",
@@ -131,64 +192,22 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ content: msg, isUser }) => {
                 {msg.toolInvocations?.map((toolInvocation: any) => {
                   const { toolName, toolCallId, state } = toolInvocation;
 
+                  const showResultText = ['displayWeather', 'webSearchTool', 'generateImage','youtubeTranscription'].includes(toolName);
+
+                  const toolMessages: Record<string, string> = {
+                    displayWeather: 'Analysing Weather...',
+                    webSearchTool: 'Searching Web...',
+                    generateImage: 'Generating Image...',
+                    youtubeTranscription: 'Analysing Video...',
+                  };
                   return (
                     <div key={toolCallId}>
-                      {toolName === 'displayWeather' || toolName === 'webSearchTool' || toolName === 'generateImage' ? (
+                      {showResultText ? (
                         state === 'result' ? (
-                          toolName === 'displayWeather' ? (
-                            <div>
-                              {
-                                toolInvocation?.result?.location?.name &&
-                                <WeatherCard data={toolInvocation?.result} />
-                              }
-                            </div>
-                          ) : toolName === 'generateImage' ? (
-                            <ImageDisplay
-                              src={toolInvocation?.result?.imageUrl}
-                              prompt={toolInvocation?.result?.prompt}
-                            />
-                          ) : toolName === 'webSearchTool' ? (
-                            <>
-                              <Tabs defaultValue='answer'>
-                                <TabsList className='w-full'>
-                                  <TabsTrigger value='answer'>Answer</TabsTrigger>
-                                  <TabsTrigger value='source'>Sources</TabsTrigger>
-                                </TabsList>
-                                <TabsContent value='answer'>
-                                  <ReactMarkdown
-                                    remarkPlugins={[remarkMath, remarkGfm, remarkEmoji, remarkToc]}
-                                    rehypePlugins={[rehypeKatex, rehypeRaw]}
-                                    components={renderers}
-                                  >
-                                    {toolInvocation?.result?.summary}
-                                  </ReactMarkdown>
-                                </TabsContent>
-                                <TabsContent value='source'>
-                                  {toolInvocation?.result?.sources.map((source: any, i: number) =>
-                                    <Link href={source.url} target='_blank' key={i}>
-                                      <div className="bg-card mb-2 cursor-pointer hover:bg-secondary/20 transition-all duration-300 rounded-xl p-2 shadow-md hover:shadow-xl border border-border/40 backdrop-blur-sm">
-                                        <div className="flex items-center gap-3">
-                                          <div className="p-2.5 bg-gradient-to-br from-primary/80 to-primary rounded-full flex-shrink-0 shadow-inner flex items-center justify-center text-primary-foreground">
-                                            <ExternalLink className="h-5 w-5" />
-                                          </div>
-                                          <div className="space-y-1">
-                                            <h4 className="font-medium line-clamp-1 text-sm">{source.url}</h4>
-                                            <p className="text-sm line-clamp-1 text-muted-foreground">{source.title}</p>
-                                          </div>
-                                        </div>
-                                      </div>
-                                    </Link>
-                                  )
-                                  }
-                                </TabsContent>
-                                <Separator />
-                                <p className='text-muted-foreground text-sm'>Summary:</p>
-                              </Tabs>
-                            </>
-                          ) : null
+                          getToolResult(toolName, toolInvocation)
                         ) : (
                           <TextShimmerWave className="font-mono text-sm" duration={1}>
-                            {toolName === 'displayWeather' && 'Loading Weather Data...' || toolName === 'webSearchTool' && 'Searching Web..' || toolName === 'generateImage' && 'Generating Image...' || ""}
+                            {toolMessages[toolName] ?? ''}
                           </TextShimmerWave>
                         )
                       ) : null}
