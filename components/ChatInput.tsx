@@ -2,11 +2,14 @@
 
 import { Button } from '@/components/ui/button';
 import { Textarea } from '@/components/ui/textarea';
-import { Paperclip, Send } from 'lucide-react';
+import { Command, Paperclip, Send, TextQuote, Type } from 'lucide-react';
 import { useRef, useState } from 'react';
 import FileDisplay from './Widgets/FileDisplay';
 import { ChatRequestOptions } from 'ai';
 import { toast } from 'react-toastify';
+import { cn } from '@/lib/utils';
+import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
+import { CommandData } from '@/constants';
 
 interface ChatInputProps {
   input: string;
@@ -15,10 +18,11 @@ interface ChatInputProps {
     preventDefault?: () => void;
   }, chatRequestOptions?: ChatRequestOptions) => void;
   isGenerating?: boolean;
+  setInput?: React.Dispatch<React.SetStateAction<string>>
 }
 
 
-const ChatInput: React.FC<ChatInputProps> = ({ input, handleInputChange, handleSubmit, isGenerating }) => {
+const ChatInput: React.FC<ChatInputProps> = ({ input, handleInputChange, handleSubmit, isGenerating, setInput }) => {
   const [fileName, setFileName] = useState<string | null>(null);
   const [files, setFiles] = useState<FileList | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
@@ -30,14 +34,11 @@ const ChatInput: React.FC<ChatInputProps> = ({ input, handleInputChange, handleS
           toast.error("Please Enter Prompt First");
           return;
         }
-
         handleSubmit(event, {
           experimental_attachments: files,
         });
-
         setFiles(undefined)
         setFileName(null);
-
         if (fileInputRef.current) {
           fileInputRef.current.value = '';
         }
@@ -72,6 +73,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ input, handleInputChange, handleS
         <Button
           type="submit"
           size="icon"
+          variant={"outline"}
           className="absolute cursor-pointer bottom-2 right-2"
           disabled={isGenerating}
         >
@@ -81,6 +83,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ input, handleInputChange, handleS
         <Button
           onClick={() => fileInputRef.current?.click()}
           size="icon"
+          variant={"outline"}
           className="absolute cursor-pointer bottom-2 left-2"
           disabled={isGenerating}
         >
@@ -99,6 +102,44 @@ const ChatInput: React.FC<ChatInputProps> = ({ input, handleInputChange, handleS
           multiple
           ref={fileInputRef}
         />
+        <DropdownMenu>
+          <DropdownMenuTrigger asChild>
+            <Button
+              type="button"
+              size="icon"
+              variant={"outline"}
+              data-command-button
+              onClick={(e) => {
+                e.stopPropagation();
+              }}
+              className={cn(
+                "absolute transition-colors group cursor-pointer bottom-2 left-12.5",
+              )}
+            >
+              <Command className="w-4 h-4" />
+              <span
+                className="absolute inset-0 bg-white/[0.05] opacity-0 group-hover:opacity-100 transition-opacity"
+              />
+            </Button>
+          </DropdownMenuTrigger>
+          <DropdownMenuContent>
+            {CommandData.map((data, i) =>
+              <DropdownMenuItem className='cursor-pointer' key={i} onClick={() => setInput?.(data.command)}>
+                <div
+                  className="flex size-8 items-center justify-center rounded-lg border border-border bg-background"
+                  aria-hidden="true"
+                >
+                  <data.Icon size={16} strokeWidth={2} className={`${data.iconColor}`} />
+                </div>
+                <div>
+                  <div className="text-sm font-medium">{data.label}</div>
+                  <div className="text-xs text-muted-foreground">{data.description}</div>
+                </div>
+              </DropdownMenuItem>
+            )
+            }
+          </DropdownMenuContent>
+        </DropdownMenu>
       </div>
     </form>
   );

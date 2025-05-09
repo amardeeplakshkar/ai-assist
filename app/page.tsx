@@ -6,11 +6,9 @@ import ChatMessage from '@/components/ChatMessage';
 import ChatInput from '@/components/ChatInput';
 import { TextShimmerWave } from '@/components/ui/text-shimmer-wave';
 import { ChatMessageList } from '@/components/ui/chat-message-list';
-import { Separator } from '@/components/ui/separator';
-import { boolean } from 'zod';
 
 const MainPage = () => {
-  const { messages, input, handleInputChange, handleSubmit, isLoading, } = useChat({
+  const { messages, input, handleInputChange, handleSubmit, isLoading, setInput } = useChat({
     experimental_throttle: 50, onToolCall: (...args) => {
       setIsToolCalling(true);
     },
@@ -47,6 +45,7 @@ const MainPage = () => {
         handleInputChange={handleInputChange}
         handleSubmit={handleSubmit}
         isGenerating={isLoading}
+        setInput={setInput}
       />
     </div>
   )

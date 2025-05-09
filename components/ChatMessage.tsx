@@ -119,9 +119,9 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ content: msg, isUser }) => {
           <WeatherCard data={toolInvocation?.result} />
         );
       case 'youtubeTranscription':
-        return(
+        return (
           <>
-          <iframe src={toolInvocation?.result?.embedLink} width="100%" className='aspect-video max-h-[216px] rounded-lg max-w-[384px]' height="100%" allowFullScreen></iframe>
+            <iframe src={toolInvocation?.result?.embedLink} width="100%" className='aspect-video max-h-[216px] rounded-lg max-w-[384px]' height="100%" allowFullScreen></iframe>
           </>
         );
       case 'generateImage':
@@ -130,6 +130,10 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ content: msg, isUser }) => {
             src={toolInvocation?.result?.imageUrl}
             prompt={toolInvocation?.result?.prompt}
           />
+        );
+      case 'cameraAiTool':
+        return (
+          <></>
         );
       case 'webSearchTool':
         return (
@@ -191,14 +195,14 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ content: msg, isUser }) => {
               <div>
                 {msg.toolInvocations?.map((toolInvocation: any) => {
                   const { toolName, toolCallId, state } = toolInvocation;
-
-                  const showResultText = ['displayWeather', 'webSearchTool', 'generateImage','youtubeTranscription'].includes(toolName);
+                  const showResultText = ['displayWeather', 'webSearchTool', 'generateImage', 'youtubeTranscription', 'cameraAiTool'].includes(toolName);
 
                   const toolMessages: Record<string, string> = {
                     displayWeather: 'Analysing Weather...',
                     webSearchTool: 'Searching Web...',
                     generateImage: 'Generating Image...',
                     youtubeTranscription: 'Analysing Video...',
+                    cameraAiTool: 'Analysing Video'
                   };
                   return (
                     <div key={toolCallId}>
