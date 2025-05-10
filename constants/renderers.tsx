@@ -1,10 +1,13 @@
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
+import { HoverPeek } from "@/components/ui/link-preview";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Copy } from "lucide-react";
+import { useTheme } from "next-themes";
 import Link from "next/link";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
+import { oneLight } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { dracula } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { toast } from "react-toastify";
 
@@ -139,23 +142,26 @@ export const renderers = {
       </ul>
     );
   },
-  strong: ({ node, children, ...props }:any) => {
+  strong: ({ node, children, ...props }: any) => {
     return (
       <span className="font-semibold" {...props}>
         {children}
       </span>
     );
   },
-  a: ({ node, children, ...props }:any) => {
+  a: ({ node, children, ...props }: any) => {
+    const { href, ...rest } = props;
     return (
-      <Link
-        className="text-blue-500 hover:underline"
-        target="_blank"
-        rel="noreferrer"
-        {...props}
-      >
-        {children}
-      </Link>
+      <HoverPeek url={href}>
+        <Link
+          className="text-blue-500 hover:underline"
+          target="_blank"
+          rel="noreferrer"
+          {...props}
+        >
+          {children}
+        </Link>
+      </HoverPeek>
     );
   },
   img({ node, src, alt, ...props }: any) {
@@ -204,14 +210,15 @@ export const renderers = {
   code({ node, inline, className, children, ...props }: any) {
     const match = /language-(\w+)/.exec(className || "");
     const codeContent = String(children).replace(/\n$/, "");
+    const {theme} = useTheme()
     return !inline && match ? (
-      <div className='group relative'>
-        <div className='bg-[#282a36] rounded-md h-[3rem] -mb-7.5' />
+      <div className='group relative mt-2'>
+        <div className={`${theme ? (theme === 'dark' ? "bg-[#282a36]" : "bg-[#fafafa]") : "bg-[#282a36]"} rounded-md h-[3rem] -mb-7.5`} />
         <SyntaxHighlighter
-          style={dracula}
+          style={theme ? (theme === 'dark' ? dracula : oneLight): dracula}
           language={match[1]}
           PreTag="div"
-          className="rounded-md"
+          className="rounded-md text-sm"
           {...props}
         >
           {codeContent}
@@ -221,7 +228,7 @@ export const renderers = {
             size="sm"
             onClick={() => handleCopy(codeContent)}
             variant="secondary"
-            className="flex cursor-pointer items-center gap-1 bg-white/10 text-white backdrop-blur-sm hover:bg-white/15 shadow-md"
+            className="flex cursor-pointer items-center gap-1 bg-secondary-foreground/10 text-secondary-foregroundbg-secondary-foreground backdrop-blur-sm hover:bg-secondary-foreground/15 shadow-md"
           >
             <Copy size={16} />
             <span>Copy</span>
@@ -233,5 +240,5 @@ export const renderers = {
         {children}
       </Badge>
     );
-  } 
+  }
 };
