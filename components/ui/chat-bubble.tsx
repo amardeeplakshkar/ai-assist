@@ -72,7 +72,7 @@ import { ReactElement } from 'react';
 
 export function ChatBubbleAvatar({ Icon }: { Icon: ReactElement }) {
   return (
-    <div className="mt-2 w-8 h-8 rounded-full bg-secondary-foreground/5 flex items-center justify-center">
+    <div className="w-8 h-8 rounded-full bg-secondary-foreground/5 flex items-center justify-center">
       {Icon}
     </div>
   );

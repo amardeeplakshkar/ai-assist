@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Separator } from "@/components/ui/separator";
 import { Table, TableHeader, TableBody, TableRow, TableHead, TableCell } from "@/components/ui/table";
 import { Copy } from "lucide-react";
+import Link from "next/link";
 import { Prism as SyntaxHighlighter } from "react-syntax-highlighter";
 import { dracula } from "react-syntax-highlighter/dist/esm/styles/prism";
 import { toast } from "react-toastify";
@@ -65,10 +66,6 @@ export const renderers = {
     return <Separator className="my-6" {...props} />;
   },
 
-  strong({ node, ...props }: any) {
-    return <strong className="font-semibold" {...props} />;
-  },
-
   em({ node, ...props }: any) {
     return <em className="italic" {...props} />;
   },
@@ -77,37 +74,88 @@ export const renderers = {
     return <del className="line-through text-muted-foreground" {...props} />;
   },
 
-  h1({ node, ...props }: any) {
-    return <h1 level={1} className="text-4xl font-bold my-4" {...props} />;
-  },
-
-  h2({ node, ...props }: any) {
-    return <h2 level={2} className="text-3xl font-semibold my-3" {...props} />;
-  },
-
-  h3({ node, ...props }: any) {
-    return <h3 level={3} className="text-2xl font-medium my-2" {...props} />;
-  },
-
-  p({ node, ...props }: any) {
-    return <p className="leading-7 my-2" {...props} />;
-  },
-
-  ul({ node, ...props }: any) {
-    return <ul className="list-disc ml-6 mb-4" {...props} />;
-  },
-
-  ol({ node, ...props }: any) {
-    return <ol className="list-decimal ml-6 mb-4" {...props} />;
-  },
-
-  li({ node, ...props }: any) {
-    return <li className="mb-1" {...props} />;
-  },
-
-  a({ node, href, ...props }: any) {
+  h1: ({ node, children, ...props }: any) => {
     return (
-      <a target='_blank' href={href} className="text-blue-600 underline hover:opacity-80" {...props} />
+      <h1 className="text-3xl font-semibold mt-6 mb-2" {...props}>
+        {children}
+      </h1>
+    );
+  },
+  h2: ({ node, children, ...props }: any) => {
+    return (
+      <h2 className="text-2xl font-semibold mt-6 mb-2" {...props}>
+        {children}
+      </h2>
+    );
+  },
+  h3: ({ node, children, ...props }: any) => {
+    return (
+      <h3 className="text-xl font-semibold mt-6 mb-2" {...props}>
+        {children}
+      </h3>
+    );
+  },
+  h4: ({ node, children, ...props }: any) => {
+    return (
+      <h4 className="text-lg font-semibold mt-6 mb-2" {...props}>
+        {children}
+      </h4>
+    );
+  },
+  h5: ({ node, children, ...props }: any) => {
+    return (
+      <h5 className="text-base font-semibold mt-6 mb-2" {...props}>
+        {children}
+      </h5>
+    );
+  },
+  h6: ({ node, children, ...props }: any) => {
+    return (
+      <h6 className="text-sm font-semibold mt-6 mb-2" {...props}>
+        {children}
+      </h6>
+    );
+  },
+
+  pre: ({ children }: any) => <>{children}</>,
+  ol: ({ node, children, ...props }: any) => {
+    return (
+      <ol className="list-decimal list-outside ml-4" {...props}>
+        {children}
+      </ol>
+    );
+  },
+  li: ({ node, children, ...props }: any) => {
+    return (
+      <li className="py-1" {...props}>
+        {children}
+      </li>
+    );
+  },
+  ul: ({ node, children, ...props }: any) => {
+    return (
+      <ul className="list-decimal list-outside ml-4" {...props}>
+        {children}
+      </ul>
+    );
+  },
+  strong: ({ node, children, ...props }:any) => {
+    return (
+      <span className="font-semibold" {...props}>
+        {children}
+      </span>
+    );
+  },
+  a: ({ node, children, ...props }:any) => {
+    return (
+      <Link
+        className="text-blue-500 hover:underline"
+        target="_blank"
+        rel="noreferrer"
+        {...props}
+      >
+        {children}
+      </Link>
     );
   },
   img({ node, src, alt, ...props }: any) {
@@ -181,7 +229,7 @@ export const renderers = {
         </div>
       </div>
     ) : (
-      <Badge variant={"secondary"} {...props}>
+      <Badge className="whitespace-pre" variant={"secondary"} {...props}>
         {children}
       </Badge>
     );
