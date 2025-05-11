@@ -10,6 +10,7 @@ import { toast } from 'react-toastify';
 import { cn } from '@/lib/utils';
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from './ui/dropdown-menu';
 import { CommandData } from '@/constants';
+import { usePathname } from 'next/navigation';
 
 interface ChatInputProps {
   input: string;
@@ -26,6 +27,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ input, handleInputChange, handleS
   const [fileName, setFileName] = useState<string | null>(null);
   const [files, setFiles] = useState<FileList | undefined>(undefined);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const pathname = usePathname()
   return (
     <form
       onSubmit={(event: React.FormEvent) => {
@@ -43,7 +45,7 @@ const ChatInput: React.FC<ChatInputProps> = ({ input, handleInputChange, handleS
           fileInputRef.current.value = '';
         }
       }}
-      className="border-t border-border bg-background p-4 sticky bottom-0"
+      className={`mx-auto border-border bg-background p-4 sticky bottom-0 ${pathname === '/' ? "max-w-xl w-full" : 'w-full border-t'}`}
     >
       {fileName && <FileDisplay fileName={fileName} onClear={() => setFileName(null)} />}
       <div className="relative flex items-end">

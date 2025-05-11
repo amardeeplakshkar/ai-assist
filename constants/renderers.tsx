@@ -154,7 +154,7 @@ export const renderers = {
     return (
       <HoverPeek url={href}>
         <Link
-          className="text-blue-500 hover:underline"
+          className="text-blue-500 line-clamp-1 hover:underline"
           target="_blank"
           rel="noreferrer"
           {...props}

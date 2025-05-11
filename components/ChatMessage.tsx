@@ -184,7 +184,7 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ content: msg, isUser }) => {
     )}>
       <div className='max-w-[85%]'>
         <div key={msg.id} className="py-6 first:pt-0 last:pb-0">
-          <div className="flex gap-3">
+          <div className={`flex gap-3 ${variant === "sent" && "flex-row-reverse"}`}>
             <ChatBubbleAvatar
               Icon={variant !== "sent"
                 ? <Brain className='text-blue-500' size={20} />

@@ -24,7 +24,9 @@ import {
   SidebarMenuItem,
   useSidebar,
 } from "@/components/ui/sidebar"
-
+import { useEffect, useState } from "react"
+import { toast } from "react-toastify"
+import TextLink from "next/link"
 export function NavHistory({
   history,
 }: {
@@ -35,13 +37,46 @@ export function NavHistory({
   }[]
 }) {
   const { isMobile } = useSidebar()
+  const [withEmojis, setWithEmojis] = useState(history)
+
+  useEffect(() => {
+    const fetchEmojis = async () => {
+      const updated = await Promise.all(
+        history.map(async (item) => {
+          if (item.emoji) return item // skip if emoji already exists
+
+          try {
+            const res = await fetch(
+              `https://text.pollinations.ai/${encodeURIComponent(item.name)}?system=just reply with one emoji based on prompt`
+            )
+            const emoji = await res.text()
+            return { ...item, emoji: emoji.trim() }
+          } catch (err) {
+            console.error("Emoji fetch failed for:", item.name)
+            return { ...item, emoji: "" }
+          }
+        })
+      )
+      setWithEmojis(updated)
+    }
+
+    fetchEmojis()
+  }, [history])
+
+  const handleCopyLink = (text: string) => {
+    navigator.clipboard.writeText(text).then(() => {
+      toast.success("Link copied to clipboard!");
+    }).catch((err) => {
+      toast.error("Failed to copy link: ", err);
+    });
+  }
 
   return (
     <SidebarGroup className="group-data-[collapsible=icon]:hidden">
       <SidebarGroupLabel>History</SidebarGroupLabel>
       <SidebarMenu>
-        {history.map((item) => (
-          <SidebarMenuItem key={item.name}>
+        {withEmojis.map((item, i) => (
+          <SidebarMenuItem key={i}>
             <SidebarMenuButton asChild>
               <a href={item.url} title={item.name}>
                 <span>{item.emoji}</span>
@@ -65,13 +100,15 @@ export function NavHistory({
                   <span>Remove from History</span>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem>
+                <DropdownMenuItem onClick={()=> handleCopyLink(item.url)}>
                   <Link className="text-muted-foreground" />
                   <span>Copy Link</span>
                 </DropdownMenuItem>
                 <DropdownMenuItem>
+                  <TextLink href={item.url} target="_blank" className="flex gap-2 ">
                   <ArrowUpRight className="text-muted-foreground" />
                   <span>Open in New Tab</span>
+                  </TextLink>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem>

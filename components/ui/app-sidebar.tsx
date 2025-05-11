@@ -6,6 +6,7 @@ import {
   Calendar,
   Home,
   Inbox,
+  Loader,
   MessageCircleQuestion,
   Search,
   Settings2,
@@ -22,6 +23,7 @@ import {
   SidebarHeader,
   SidebarRail,
 } from "@/components/ui/sidebar"
+import { useUserChats } from "@/lib/chat/useUserChats"
 
 const data = {
   navMain: [
@@ -108,14 +110,22 @@ const data = {
 }
 
 export function AppSidebar({ ...props }: React.ComponentProps<typeof Sidebar>) {
+  const { items, loading } = useUserChats();
   return (
     <Sidebar className="border-r-0" {...props}>
       <SidebarHeader>
         <NavMain items={data.navMain} />
       </SidebarHeader>
       <SidebarContent>
-        <NavHistory history={data.history} />
-        <NavSecondary items={data.navSecondary} className="mt-auto" />
+        {
+          loading ?
+            <Loader className="animate-spin"/>
+            :
+            <>
+              <NavHistory history={items} />
+              <NavSecondary items={data.navSecondary} className="mt-auto" />
+            </>
+        }
       </SidebarContent>
       <SidebarRail />
     </Sidebar>
