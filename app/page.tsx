@@ -28,7 +28,8 @@ const MainPage = () => {
       setIsToolCalling(true);
     },
   });
-  const {user} = useUser()
+  const { user } = useUser()
+
   const [shouldSubmitInitialPrompt, setShouldSubmitInitialPrompt] = useState(false);
 
   useEffect(() => {
@@ -37,12 +38,12 @@ const MainPage = () => {
       setInput(input);
       setShouldSubmitInitialPrompt(true);
     }
-  }, [input, setInput]);
+  }, [setInput]);
 
   useEffect(() => {
     if (shouldSubmitInitialPrompt && input.trim()) {
-      handleInitialSubmit();
       setShouldSubmitInitialPrompt(false);
+      handleInitialSubmit();
     }
   }, [shouldSubmitInitialPrompt, input, handleSubmit]);
 

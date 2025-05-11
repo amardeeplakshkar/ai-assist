@@ -6,12 +6,15 @@ import { SidebarInset, SidebarProvider } from '../ui/sidebar'
 import { AppSidebar } from '../ui/app-sidebar'
 import { MessagesProvider } from './MessagesProvider'
 import { ClerkProvider } from '@clerk/nextjs'
+import { dark } from '@clerk/themes'
 
 const Provider = ({ children }: { children: React.ReactNode }) => {
     return (
         <>
-            <ClerkProvider>
-                <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+            <ThemeProvider attribute="class" defaultTheme="system" enableSystem disableTransitionOnChange>
+                <ClerkProvider appearance={{
+                    baseTheme: [dark]
+                }}>
                     <MessagesProvider>
                         <SidebarProvider>
                             <AppSidebar />
@@ -20,8 +23,8 @@ const Provider = ({ children }: { children: React.ReactNode }) => {
                             </SidebarInset>
                         </SidebarProvider>
                     </MessagesProvider>
-                </ThemeProvider>
-            </ClerkProvider>
+                </ClerkProvider>
+            </ThemeProvider>
         </>
     )
 }

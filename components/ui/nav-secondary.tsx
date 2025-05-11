@@ -1,3 +1,5 @@
+'use client'
+
 import React from "react"
 import { type LucideIcon } from "lucide-react"
 
@@ -9,6 +11,7 @@ import {
   SidebarMenuButton,
   SidebarMenuItem,
 } from "@/components/ui/sidebar"
+import { useClerk } from "@clerk/nextjs"
 
 export function NavSecondary({
   items,
@@ -21,14 +24,18 @@ export function NavSecondary({
     badge?: React.ReactNode
   }[]
 } & React.ComponentPropsWithoutRef<typeof SidebarGroup>) {
+  const { openUserProfile } = useClerk();
+  const handleOpenProfile = () => {
+    openUserProfile();
+  };
   return (
     <SidebarGroup {...props}>
       <SidebarGroupContent>
         <SidebarMenu>
           {items.map((item) => (
             <SidebarMenuItem key={item.title}>
-              <SidebarMenuButton asChild>
-                <a href={item.url}>
+              <SidebarMenuButton className="cursor-pointer" onClick={handleOpenProfile} asChild>
+                <a>
                   <item.icon />
                   <span>{item.title}</span>
                 </a>
