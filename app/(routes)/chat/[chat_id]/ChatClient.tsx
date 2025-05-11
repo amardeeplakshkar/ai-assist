@@ -12,6 +12,8 @@ import { ChatMessageList } from '@/components/ui/chat-message-list';
 import { TextShimmerWave } from '@/components/ui/text-shimmer-wave';
 import { suggestedActions } from '@/constants';
 import { unstable_ViewTransition as ViewTransition } from 'react'
+import { useUserChats } from '@/lib/chat/useUserChats';
+import { Loader } from 'lucide-react';
 
 export default function ChatClient({ chatId }: { chatId: string }) {
     const { setInitialPrompt, setInitialMessages, initialMessages } = useMessages();
@@ -23,7 +25,7 @@ export default function ChatClient({ chatId }: { chatId: string }) {
     });
     const [isToolCalling, setIsToolCalling] = useState(false)
     const { user } = useUser()
-   
+    const { loading } = useUserChats()
     useEffect(() => {
         const uploadMessages = async () => {
             if (!user?.id || messages.length === 0) return;
@@ -72,7 +74,7 @@ export default function ChatClient({ chatId }: { chatId: string }) {
     return (
         <div className='flex flex-col overflow-hidden'>
             <ChatMessageList className='flex-1 flex flex-col'>
-                {messages?.length < 1 &&
+                {!loading && messages?.length < 1 &&
                     <>
                         <div className='flex w-full text-2xl h-[40dvh] justify-center flex-col'>
                             <h3 className='font-semibold'>
@@ -105,6 +107,12 @@ export default function ChatClient({ chatId }: { chatId: string }) {
                             ))}
                         </section>
                     </>
+                }
+                {
+                    loading &&
+                    <div className='flex justify-center items-center'>
+                        <Loader className='animate-spin h-full' />
+                    </div>
                 }
                 {
                     messages?.map((msg, i) =>
