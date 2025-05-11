@@ -12,11 +12,11 @@ export async function POST(req: NextRequest) {
   const audioPath = path.join('/tmp', audioFileName);
 
   const tts = new EdgeTTS({
-    voice: 'hi-IN-SwaraNeural',
-    lang: 'hi-IN',
-    pitch: '10%',
-    rate: '+40%',
-    volume: '-50%',
+    voice: 'en-US-ChristopherNeural',
+    lang: 'en-US',
+    pitch: '+0Hz',
+    rate: '+0%',
+    volume: '+0%',
   });
 
   try {
@@ -29,7 +29,9 @@ export async function POST(req: NextRequest) {
     return new NextResponse(audioBuffer, {
       headers: {
         'Content-Type': 'audio/mpeg',
-        'Content-Disposition': `inline; filename="${audioFileName}"`,
+        'Content-Length': audioBuffer.length.toString(),
+        'Accept-Ranges': 'bytes',
+        'Cache-Control': 'no-cache',
       },
     });
   } catch (error) {

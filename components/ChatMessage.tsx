@@ -95,9 +95,45 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ content: msg, isUser }) => {
     }
   };
 
-  const enqueueTTS = (text: string) => {
-    ttsQueueRef.current.push(text);
-    processQueue();
+  const enqueueTTS = async (text: string) => {
+    try {
+      const res = await fetch('/api/tts', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ text }),
+      });
+  
+      if (!res.ok) throw new Error('TTS request failed');
+  
+      const blob = await res.blob();
+      const url = URL.createObjectURL(blob);
+      const audio = new Audio(url);
+  
+      // Add error handling for playback
+      audio.onerror = (e) => {
+        console.error('Audio playback error:', e);
+        URL.revokeObjectURL(url);
+        toast.error('Failed to play audio');
+      };
+  
+      // Ensure proper cleanup
+      audio.onended = () => {
+        URL.revokeObjectURL(url);
+        isSpeakingRef.current = false;
+        processQueue();
+      };
+  
+      await audio.play().catch((err) => {
+        console.error('Playback failed:', err);
+        URL.revokeObjectURL(url);
+        toast.error('Audio playback failed. Please try again.');
+      });
+    } catch (err) {
+      console.error('TTS error:', err);
+      toast.error('Text-to-speech failed. Please try again.');
+      isSpeakingRef.current = false;
+      processQueue();
+    }
   };
 
   const variant = msg.role === "user" ? "sent" : "received";
