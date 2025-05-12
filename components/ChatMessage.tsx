@@ -9,7 +9,7 @@ import 'katex/dist/katex.min.css';
 import WeatherCard from './Widgets/Weather';
 import ImageDisplay from './Widgets/ImageDisplay';
 import { TextShimmerWave } from './ui/text-shimmer-wave';
-import { Brain, Copy, ExternalLink, User, Volume2 } from 'lucide-react';
+import { Brain, Copy, ExternalLink, Square, User, Volume2, VolumeX } from 'lucide-react';
 import { Button } from './ui/button';
 import { toast } from 'react-toastify';
 import Image from 'next/image';
@@ -23,6 +23,7 @@ import { ChatBubbleAvatar } from './ui/chat-bubble';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from './ui/tabs';
 import { Separator } from './ui/separator';
 import Link from 'next/link';
+import useTTSQueue from '@/hooks/use-audio';
 
 interface ChatMessageProps {
   content: any;
@@ -30,6 +31,8 @@ interface ChatMessageProps {
 }
 
 const ChatMessage: React.FC<ChatMessageProps> = ({ content: msg, isUser }) => {
+  const { enqueueTTS, isAudioPlaying, stopAudio } = useTTSQueue();
+
   const handleCopy = (text: string) => {
     navigator.clipboard.writeText(text).then(() => {
       toast.success('Copied to clipboard!');
@@ -52,91 +55,25 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ content: msg, isUser }) => {
     [msg?.experimental_attachments]
   );
 
-  const hasSpokenRef = useRef(false);
-  const ttsQueueRef = useRef<string[]>([]);
-  const isSpeakingRef = useRef(false);
-
-  const processQueue = async () => {
-    if (ttsQueueRef.current.length === 0 || isSpeakingRef.current) return;
-
-    isSpeakingRef.current = true;
-    const text = ttsQueueRef.current.shift();
-
-    if (text) {
-      try {
-        const res = await fetch('/api/tts', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ text }),
-        });
-
-        const blob = await res.blob();
-        const url = URL.createObjectURL(blob);
-        const audio = new Audio(url);
-
-        audio.addEventListener('ended', () => {
-          isSpeakingRef.current = false;
-          URL.revokeObjectURL(url);
-          processQueue();
-        });
-
-        audio.addEventListener('error', () => {
-          isSpeakingRef.current = false;
-          URL.revokeObjectURL(url);
-          processQueue();
-        });
-
-        await audio.play();
-      } catch (err) {
-        console.error('TTS error:', err);
-        isSpeakingRef.current = false;
-        processQueue();
-      }
-    }
-  };
-
-  const enqueueTTS = async (text: string) => {
-    try {
-      const res = await fetch('/api/tts', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ text }),
-      });
-  
-      if (!res.ok) throw new Error('TTS request failed');
-  
-      const blob = await res.blob();
-      const url = URL.createObjectURL(blob);
-      const audio = new Audio(url);
-  
-      // Add error handling for playback
-      audio.onerror = (e) => {
-        console.error('Audio playback error:', e);
-        URL.revokeObjectURL(url);
-        toast.error('Failed to play audio');
-      };
-  
-      // Ensure proper cleanup
-      audio.onended = () => {
-        URL.revokeObjectURL(url);
-        isSpeakingRef.current = false;
-        processQueue();
-      };
-  
-      await audio.play().catch((err) => {
-        console.error('Playback failed:', err);
-        URL.revokeObjectURL(url);
-        toast.error('Audio playback failed. Please try again.');
-      });
-    } catch (err) {
-      console.error('TTS error:', err);
-      toast.error('Text-to-speech failed. Please try again.');
-      isSpeakingRef.current = false;
-      processQueue();
-    }
-  };
-
   const variant = msg.role === "user" ? "sent" : "received";
+
+  function markdownToPlain(text: string) {
+    let out = text
+      .replace(/(\*{1,2}|_{1,2})(.*?)\1/g, '$2') // bold/italic
+      .replace(/\[(.*?)\]\(.*?\)/g, '$1')        // links
+      .replace(/`(.+?)`/g, '$1')                 // inline code
+      .replace(/#+\s?/g, '')                     // headings
+      .replace(/>\s?/g, '')                      // blockquotes
+      .replace(/---/g, '')                       // horizontal rules
+      .replace(/\r?\n|\r/g, ' ')                 // new lines
+      .replace(/\s+/g, ' ')                      // multiple spaces
+      .replace(/\$\$.*?\$\$/g, '')               // display latex
+      .replace(/\$.*?\$/g, '')                   // inline latex
+      .replace(/\|/g, '')                        // table pipes
+      .replace(/:---+|---+:/g, '')               // table headers dashes
+      .trim();
+    return out;
+  }
 
   const memoizedContent = useMemo(() => (
     <ReactMarkdown
@@ -290,14 +227,25 @@ const ChatMessage: React.FC<ChatMessageProps> = ({ content: msg, isUser }) => {
                   >
                     <Copy size={16} />
                   </Button>
-                  <Button
-                    size="sm"
-                    onClick={() => enqueueTTS(String(msg.content).replace(/\n$/, ''))}
-                    variant="outline"
-                    className="cursor-pointer my-1 shadow-md"
-                  >
-                    <Volume2 size={16} />
-                  </Button>
+                  {isAudioPlaying ?
+                    <Button
+                      size="sm"
+                      onClick={stopAudio} disabled={!isAudioPlaying}
+                      variant="outline"
+                      className="cursor-pointer my-1 shadow-md"
+                    >
+                      <Square size={16} />
+                    </Button>
+                    :
+                    <Button
+                      size="sm"
+                      onClick={() => enqueueTTS(markdownToPlain(msg.content))}
+                      variant="outline"
+                      className="cursor-pointer my-1 shadow-md"
+                    >
+                      <Volume2 size={16} />
+                    </Button>
+                  }
                 </div>
               }
             </div>
