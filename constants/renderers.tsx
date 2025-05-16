@@ -210,12 +210,12 @@ export const renderers = {
   code({ node, inline, className, children, ...props }: any) {
     const match = /language-(\w+)/.exec(className || "");
     const codeContent = String(children).replace(/\n$/, "");
-    const {theme} = useTheme()
+    const { theme } = useTheme()
     return !inline && match ? (
       <div className='group relative mt-2'>
         <div className={`${theme ? (theme === 'dark' ? "bg-[#282a36]" : "bg-[#fafafa]") : "bg-[#282a36]"} rounded-md h-[3rem] -mb-7.5`} />
         <SyntaxHighlighter
-          style={theme ? (theme === 'dark' ? dracula : oneLight): dracula}
+          style={theme ? (theme === 'dark' ? dracula : oneLight) : dracula}
           language={match[1]}
           PreTag="div"
           className="rounded-md text-sm"
@@ -236,9 +236,9 @@ export const renderers = {
         </div>
       </div>
     ) : (
-      <Badge className="whitespace-pre" variant={"secondary"} {...props}>
+      <Badge className="whitespace-pre" {...props}>
         {children}
       </Badge>
     );
-  }
+  },
 };
